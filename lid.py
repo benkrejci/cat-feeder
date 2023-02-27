@@ -5,7 +5,7 @@ import pwmio
 import time
 from adafruit_motor import stepper
 
-STEPS = 110
+STEPS = 136
 LOCK_STEPS = 0.3
 
 OPEN_TIME = 0.6
@@ -46,7 +46,7 @@ def wait(last_time, delay):
         time.sleep(delay - elapsed)
     return time.monotonic_ns()
 
-def move(microsteps, delay, direction):
+def move(microsteps, delay, direction, shouldCancel = None):
     last_step = 0
     absolute_microstep = 0
     relative_microstep = 0
@@ -56,6 +56,14 @@ def move(microsteps, delay, direction):
         relative_microstep += 1
         last_step = wait(last_step, delay)
         absolute_microstep = motor.onestep(direction=direction, style=stepper.MICROSTEP)
+        if shouldCancel and shouldCancel(relative_microstep / microsteps):
+            move(
+                relative_microstep,
+                delay,
+                stepper.BACKWARD if direction is stepper.FORWARD else stepper.FORWARD
+            )
+            return False
+    return True
 
 
 is_open = False
@@ -63,18 +71,20 @@ is_open = False
 def open():
     global is_open
     if is_open:
-        warn("open() called while is_open is already True")
+        print("WARN: open() called while is_open is already True")
         return
     move(MICROSTEPS, MICROSTEP_DELAY, stepper.FORWARD)
+    motor.release()
     is_open = True
 
-def close():
+def close(shouldCancel = None):
     global is_open
     if not is_open:
-        warn("close() called while is_open is already False")
-        return
-    move(MICROSTEPS, MICROSTEP_DELAY, stepper.BACKWARD)
+        print("WARN,: close() called while is_open is already False")
+        quit()
+    success = move(MICROSTEPS, MICROSTEP_DELAY, stepper.BACKWARD, shouldCancel)
     motor.release()
     #move(LOCK_MICROSTEPS, LOCK_MICROSTEP_DELAY, stepper.FORWARD)
     #motor.release()
-    is_open = False
+    is_open = not success
+    return success
