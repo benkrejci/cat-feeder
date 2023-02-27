@@ -1,0 +1,2 @@
+Adafruit CircuitPython 7.3.2 on 2022-07-20; Adafruit ItsyBitsy M0 Express with samd21g18
+Board ID:itsybitsy_m0_express
